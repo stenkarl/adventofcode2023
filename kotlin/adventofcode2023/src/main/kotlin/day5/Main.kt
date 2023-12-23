@@ -33,23 +33,24 @@ fun part1(seeds:List<Long>, transformers:List<Transformer>) {
 
 fun part2(seeds:List<Long>, transformers:List<Transformer>) {
     var curMin = Long.MAX_VALUE
-    var count = 0L
     var total = 0L
     for (i in seeds.indices step 2) {
         total += seeds[i + 1]
     }
     println("Total $total")
     for (i in seeds.indices step 2) {
-        for (j in seeds[i]..<seeds[i] + seeds[i + 1] - 1) {
+        val start = seeds[i]
+        val len = seeds[i + 1]
+        val end = start + len - 1
+        println("start $start, end $end, len $len")
+        for (j in start..end) {
+            //println("Processing seed $j")
             val curValue = mapSeed(j, transformers)
+            //println("Seed $j maps to $curValue")
             if (curValue < curMin) {
                 curMin = curValue
                 println("new min: $curMin")
             }
-            //count++
-            //if (count.mod(10000000L) == 0L) {
-                //println("Count $count, value $j")
-            //}
         }
     }
 
@@ -78,24 +79,52 @@ fun mapSeeds(seeds:List<Long>, transformers:List<Transformer>):Long =
     }.min()
 
 fun mapSeed(seed:Long, transformers:List<Transformer>): Long {
-    var mappedValue = seed
-    for (t in transformers) {
-        mappedValue = t.map(mappedValue)
-    }
-    return mappedValue
+    val locList = mutableSetOf<Long>()
+    exploreMaps(seed, 0, transformers, seed, locList)
+    //println("Found: $locList for seed $seed")
+    //println("Min loc ${locList.min()}")
+    //for (t in transformers) {
+        //mappedValue = t.map(mappedValue)
+    //}
+    return locList.min()
 }
 
+fun exploreMaps(topLevelSeed:Long, index:Int, transformers:List<Transformer>, value:Long, locList:MutableSet<Long>) {
+    //println("exploreMaps $topLevelSeed, value:$value, index $index ${transformers[index].name}")
+    //for (i in index..<transformers.size) {
+        //println("Processing ${transformers[index].name}, value:$value")
+        val list = transformers[index].map(value)
+        if (index == transformers.size - 1) {
+            locList.addAll(list)
+            //println("At the end for $topLevelSeed currentValue: $value: ${transformers[index].name} $list, locList $locList")
+            return
+        }
+        for (v in list) {
+            //println("Going to exploreMaps $topLevelSeed, v:$v, index $index ${transformers[index].name}")
+            exploreMaps(topLevelSeed, index + 1, transformers, v, locList)
+            //println("Finished exploreMaps $topLevelSeed, v:$v, index $index ${transformers[index].name}")
+        }
+    //}
+}
 
 data class Transformer(val name:String, val ranges:List<Range>) {
 
-    fun map(value:Long): Long {
+    fun map(value:Long): List<Long> {
+        val list = mutableListOf<Long>()
         for (r in ranges) {
             val mappedValue = r.map(value)
             if (mappedValue > -1L) {
-                return mappedValue
+                //return mappedValue
+                list.add(mappedValue)
             }
         }
-        return value
+        if (list.isEmpty()) {
+            list.add(value)
+        }
+        if (list.size > 1) {
+            println("Multiple mappings found for $name: $list")
+        }
+        return list
     }
 }
 
